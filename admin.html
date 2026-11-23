@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control — Wblzy Vault</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <style>
+        :root {
+            --bg: #000000;
+            --glass-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.015) 100%);
+            --glass-border: rgba(255, 255, 255, 0.14);
+            --glass-highlight: inset 0 1px 1px rgba(255, 255, 255, 0.25), inset 0 -1px 1px rgba(255, 255, 255, 0.04);
+            --muted: #8e96a4;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body {
+            background: var(--bg);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px 16px 80px;
+            overflow-x: hidden;
+            position: relative;
+        }
+        .orb {
+            position: fixed;
+            width: 360px;
+            height: 360px;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.09);
+            filter: blur(100px);
+            border-radius: 50%;
+            z-index: -1;
+            pointer-events: none;
+        }
+        .container { max-width: 780px; margin: 0 auto; }
+
+        .glass {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-highlight), 0 20px 45px rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(26px) saturate(160%);
+            -webkit-backdrop-filter: blur(26px) saturate(160%);
+            border-radius: 24px;
+            padding: 22px;
+            margin-bottom: 20px;
+        }
+
+        /* Header */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 22px;
+            margin-bottom: 20px;
+        }
+        .topbar h1 { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.4px; }
+        .nav-actions { display: flex; gap: 10px; }
+        .pill-btn {
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 8px 14px;
+            border-radius: 99px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            color: #fff;
+            cursor: pointer;
+            width: auto;
+        }
+        .pill-btn.danger { color: #f87171; border-color: rgba(248, 113, 113, 0.35); background: rgba(239, 68, 68, 0.12); }
+
+        /* Stats Bar */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-highlight);
+            backdrop-filter: blur(22px);
+            border-radius: 20px;
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-val { font-size: 1.35rem; font-weight: 800; color: #fff; margin-bottom: 4px; }
+        .stat-lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+
+        /* Navigation Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            background: rgba(255,255,255,0.04);
+            padding: 6px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            color: var(--muted);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            background: #ffffff;
+            color: #000000;
+            box-shadow: 0 4px 14px rgba(255,255,255,0.2);
+        }
+
+        h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 16px; color: #fff; letter-spacing: -0.2px; }
+        label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        input[type="text"], input[type="password"], input[type="url"], textarea, input[type="file"] {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #fff;
+            padding: 13px 15px;
+            border-radius: 14px;
+            margin-bottom: 14px;
+            font-size: 0.92rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus, textarea:focus { border-color: rgba(255, 255, 255, 0.4); }
+
+        .btn-primary {
+            width: 100%;
+            background: linear-gradient(180deg, #ffffff 0%, #d1d5db 100%);
+            color: #000;
+            font-weight: 800;
+            border: none;
+            padding: 14px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.94rem;
+            box-shadow: 0 6px 20px rgba(255, 255, 255, 0.14);
+        }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .alert {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 13px 16px;
+            border-radius: 14px;
+            margin-bottom: 18px;
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+
+        /* Cover Photo Live Preview Box */
+        .preview-box {
+            width: 100%;
+            height: 150px;
+            border-radius: 14px;
+            border: 1px dashed rgba(255,255,255,0.2);
+            margin-bottom: 14px;
+            display: none;
+            overflow: hidden;
+            background: #080808;
+        }
+        .preview-box img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* File List Rows */
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            gap: 12px;
+        }
+        .item-row:last-child { border-bottom: none; }
+        .item-thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            color: var(--muted);
+            font-weight: 700;
+        }
+        .row-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .action-btn {
+            padding: 7px 12px;
+            border-radius: 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+        }
+        .action-btn.del {
+            background: rgba(239, 68, 68, 0.16);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.35);
+        }
+
+        /* Modal for Editing */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.82);
+            backdrop-filter: blur(12px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 50;
+        }
+        .modal-card { width: 100%; max-width: 480px; margin: 0; }
+    </style>
+</head>
+<body>
+<div class="orb"></div>
+
+<div class="container">
+    <!-- Login Card -->
+    <div id="loginBox" class="glass" style="max-width:400px; margin: 70px auto;">
+        <h2 style="text-align:center; font-size:1.25rem; margin-bottom:6px;">Admin Access</h2>
+        <p style="text-align:center; font-size:0.82rem; color:var(--muted); margin-bottom:20px;">Enter verified credentials to manage Wblzy Vault</p>
+        <div id="loginErr" class="alert" style="display:none; border-color:#f87171; color:#f87171;"></div>
+        <form onsubmit="handleLogin(event)">
+            <label>Admin ID</label>
+            <input type="text" id="userInp" placeholder="Enter ID" required autocomplete="off">
+            <label>Password</label>
+            <input type="password" id="passInp" placeholder="Enter Password" required>
+            <button type="submit" class="btn-primary" id="loginBtn">Unlock Dashboard</button>
+        </form>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="dashBox" style="display:none;">
+        <div class="glass topbar">
+            <h1>Admin Control</h1>
+            <div class="nav-actions">
+                <a href="/" target="_blank" class="pill-btn">Live Site</a>
+                <button onclick="logout()" class="pill-btn danger">Logout</button>
+            </div>
+        </div>
+
+        <div id="msgBox" class="alert" style="display:none;"></div>
+
+        <!-- Analytics Summary -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-val" id="statFiles">0</div>
+                <div class="stat-lbl">Total Files</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="statDownloads">0</div>
+                <div class="stat-lbl">Downloads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="statMode">LOCAL</div>
+                <div class="stat-lbl">Storage Mode</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('upload', this)">Upload File</button>
+            <button class="tab-btn" onclick="switchTab('manage', this)">Manage Files</button>
+            <button class="tab-btn" onclick="switchTab('notice', this)">Announcement</button>
+        </div>
+
+        <!-- Tab 1: Upload File -->
+        <div id="tab-upload" class="glass">
+            <h2>Publish New Release</h2>
+            <form onsubmit="uploadFile(event)">
+                <label>Title</label>
+                <input type="text" id="titleInp" placeholder="e.g. Wblzy Pro Tool v1.0" required>
+
+                <label>Caption / Description</label>
+                <textarea id="captionInp" rows="3" placeholder="Features, changelog, or usage instructions..." required></textarea>
+
+                <label>Cover Photo (Optional)</label>
+                <input type="file" id="thumbInp" accept="image/*" onchange="previewCover(event)">
+                <div class="preview-box" id="coverPreviewBox"><img id="coverPreviewImg" alt="Cover Preview"></div>
+
+                <label>Upload File (OR Paste Direct Download URL Below)</label>
+                <input type="file" id="fileInp">
+                <input type="url" id="linkInp" placeholder="https://drive.google.com/... or direct file link">
+
+                <button type="submit" class="btn-primary" id="pubBtn">Publish to Vault</button>
+            </form>
+        </div>
+
+        <!-- Tab 2: Manage Files -->
+        <div id="tab-manage" class="glass" style="display:none;">
+            <h2>Uploaded Files</h2>
+            <div id="adminFileList">Loading...</div>
+        </div>
+
+        <!-- Tab 3: Announcement -->
+        <div id="tab-notice" class="glass" style="display:none;">
+            <h2>Live Announcement Banner</h2>
+            <form onsubmit="saveAnnouncement(event)">
+                <label>Banner Message (Leave blank & save to hide)</label>
+                <textarea id="annInput" rows="3" placeholder="Write important update or Telegram link..."></textarea>
+                <button type="submit" class="btn-primary">Update Announcement</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-backdrop" id="editModal">
+    <div class="glass modal-card">
+        <h2>Edit Release Details</h2>
+        <input type="hidden" id="editId">
+        <label>Title</label>
+        <input type="text" id="editTitle" required>
+        <label>Caption</label>
+        <textarea id="editCaption" rows="3" required></textarea>
+        <label>Download URL</label>
+        <input type="text" id="editUrl" required>
+        <div style="display:flex; gap:10px; margin-top:6px;">
+            <button type="button" class="pill-btn" style="flex:1; padding:12px;" onclick="closeEdit()">Cancel</button>
+            <button type="button" class="btn-primary" style="flex:1;" onclick="saveEdit()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const isCloud = SUPABASE_URL && SUPABASE_ANON_KEY;
+    const db = isCloud ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    let isVerifiedSession = false;
+    let cachedFiles = [];
+
+    function switchTab(name, btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        ['upload', 'manage', 'notice'].forEach(t => {
+            document.getElementById('tab-' + t).style.display = (t === name) ? 'block' : 'none';
+        });
+    }
+
+    function previewCover(e) {
+        const file = e.target.files[0];
+        const box = document.getElementById('coverPreviewBox');
+        const img = document.getElementById('coverPreviewImg');
+        if (file) {
+            img.src = URL.createObjectURL(file);
+            box.style.display = 'block';
+        } else {
+            box.style.display = 'none';
+        }
+    }
+
+    function showMsg(text) {
+        const el = document.getElementById('msgBox');
+        el.innerText = text;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 4000);
+    }
+
+    function formatSize(bytes) {
+        if (!bytes) return 'External Link';
+        if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
+        if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
+        if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
+        return bytes + ' B';
+    }
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        const btn = document.getElementById('loginBtn');
+        const err = document.getElementById('loginErr');
+        err.style.display = 'none';
+        btn.innerText = 'Verifying...';
+        btn.disabled = true;
+
+        const username = document.getElementById('userInp').value.trim();
+        const password = document.getElementById('passInp').value;
+
+        try {
+            const res = await fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'login', username, password })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success && data.token) {
+                sessionStorage.setItem('wblzy_admin_token', data.token);
+                await checkAuth();
+            } else {
+                err.innerText = data.error || 'Wrong Admin ID or Password!';
+                err.style.display = 'block';
+            }
+        } catch (networkErr) {
+            err.innerText = 'Deploy on Vercel to authenticate via /api/auth.';
+            err.style.display = 'block';
+        }
+
+        btn.innerText = 'Unlock Dashboard';
+        btn.disabled = false;
+    }
+
+    function logout() {
+        sessionStorage.removeItem('wblzy_admin_token');
+        isVerifiedSession = false;
+        location.reload();
+    }
+
+    async function checkAuth() {
+        const token = sessionStorage.getItem('wblzy_admin_token');
+        if (!token) return;
+
+        try {
+            const res = await fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'verify', token })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.valid) {
+                isVerifiedSession = true;
+                document.getElementById('loginBox').style.display = 'none';
+                document.getElementById('dashBox').style.display = 'block';
+                document.getElementById('statMode').innerText = isCloud ? 'CLOUD' : 'PREVIEW';
+                loadAdminData();
+            } else {
+                sessionStorage.removeItem('wblzy_admin_token');
+            }
+        } catch (e) {
+            sessionStorage.removeItem('wblzy_admin_token');
+        }
+    }
+
+    function getLocalData() {
+        return JSON.parse(localStorage.getItem('wblzy_vault_data') || '{"announcement":"","files":[]}');
+    }
+
+    async function loadAdminData() {
+        if (!isVerifiedSession) return;
+        const listEl = document.getElementById('adminFileList');
+
+        if (isCloud) {
+            const { data: ann } = await db.from('announcements').select('*').eq('is_active', true).order('id', { ascending: false }).limit(1);
+            if (ann && ann.length > 0) document.getElementById('annInput').value = ann[0].message;
+
+            const { data } = await db.from('files').select('*').order('id', { ascending: false });
+            cachedFiles = data || [];
+        } else {
+            const local = getLocalData();
+            document.getElementById('annInput').value = local.announcement || '';
+            cachedFiles = local.files || [];
+        }
+
+        document.getElementById('statFiles').innerText = cachedFiles.length;
+        const totalDl = cachedFiles.reduce((sum, f) => sum + (f.downloads || 0), 0);
+        document.getElementById('statDownloads').innerText = totalDl;
+
+        if (cachedFiles.length === 0) {
+            listEl.innerHTML = '<p style="color:var(--muted); font-size:0.88rem;">No files uploaded yet.</p>';
+            return;
+        }
+
+        listEl.innerHTML = cachedFiles.map(item => `
+            <div class="item-row">
+                <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                    ${item.thumb_url
+                        ? `<img src="${item.thumb_url}" class="item-thumb">`
+                        : `<div class="item-thumb">FILE</div>`
+                    }
+                    <div style="min-width:0;">
+                        <div style="font-weight:700; font-size:0.94rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.title}</div>
+                        <div style="font-size:0.76rem; color:var(--muted);">${item.file_size} • ${item.downloads || 0} downloads</div>
+                    </div>
+                </div>
+                <div class="row-actions">
+                    <button class="action-btn" onclick="openEdit(${item.id})">Edit</button>
+                    <button class="action-btn del" onclick="deleteFile(${item.id})">Delete</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function openEdit(id) {
+        const item = cachedFiles.find(f => f.id === id);
+        if (!item) return;
+        document.getElementById('editId').value = item.id;
+        document.getElementById('editTitle').value = item.title;
+        document.getElementById('editCaption').value = item.caption;
+        document.getElementById('editUrl').value = item.file_url;
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function closeEdit() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    async function saveEdit() {
+        if (!isVerifiedSession) return;
+        const id = Number(document.getElementById('editId').value);
+        const title = document.getElementById('editTitle').value.trim();
+        const caption = document.getElementById('editCaption').value.trim();
+        const file_url = document.getElementById('editUrl').value.trim();
+
+        if (isCloud) {
+            await db.from('files').update({ title, caption, file_url }).eq('id', id);
+        } else {
+            const local = getLocalData();
+            const idx = local.files.findIndex(f => f.id === id);
+            if (idx !== -1) {
+                local.files[idx].title = title;
+                local.files[idx].caption = caption;
+                local.files[idx].file_url = file_url;
+                localStorage.setItem('wblzy_vault_data', JSON.stringify(local));
+            }
+        }
+        closeEdit();
+        showMsg('Release updated successfully!');
+        loadAdminData();
+    }
+
+    async function saveAnnouncement(e) {
+        e.preventDefault();
+        if (!isVerifiedSession) return;
+        const text = document.getElementById('annInput').value.trim();
+        if (isCloud) {
+            await db.from('announcements').update({ is_active: false }).neq('id', 0);
+            if (text) await db.from('announcements').insert([{ message: text, is_active: true }]);
+        } else {
+            const local = getLocalData();
+            local.announcement = text;
+            localStorage.setItem('wblzy_vault_data', JSON.stringify(local));
+        }
+        showMsg(text ? 'Announcement published!' : 'Announcement hidden!');
+    }
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function uploadFile(e) {
+        e.preventDefault();
+        if (!isVerifiedSession) return;
+        const btn = document.getElementById('pubBtn');
+        btn.innerText = 'Publishing...';
+        btn.disabled = true;
+
+        try {
+            const title = document.getElementById('titleInp').value;
+            const caption = document.getElementById('captionInp').value;
+            const thumbFile = document.getElementById('thumbInp').files[0];
+            const mainFile = document.getElementById('fileInp').files[0];
+            const extLink = document.getElementById('linkInp').value.trim();
+
+            if (!mainFile && !extLink) {
+                alert('Please upload a file OR paste a download link!');
+                btn.innerText = 'Publish to Vault';
+                btn.disabled = false;
+                return;
+            }
+
+            let thumbUrl = '';
+            let fileUrl = extLink;
+            let fileSize = mainFile ? formatSize(mainFile.size) : 'External Link';
+
+            if (isCloud) {
+                if (thumbFile) {
+                    const tName = `${Date.now()}_${thumbFile.name.replace(/[^a-zA-Z0-9._-]/g, '')}`;
+                    await db.storage.from('vault').upload(`thumbs/${tName}`, thumbFile);
+                    thumbUrl = db.storage.from('vault').getPublicUrl(`thumbs/${tName}`).data.publicUrl;
+                }
+                if (mainFile) {
+                    const fName = `${Date.now()}_${mainFile.name.replace(/[^a-zA-Z0-9._-]/g, '')}`;
+                    await db.storage.from('vault').upload(`files/${fName}`, mainFile);
+                    fileUrl = db.storage.from('vault').getPublicUrl(`files/${fName}`).data.publicUrl;
+                }
+                await db.from('files').insert([{ title, caption, file_url: fileUrl, thumb_url: thumbUrl, file_size: fileSize, downloads: 0 }]);
+            } else {
+                if (thumbFile) thumbUrl = await fileToBase64(thumbFile);
+                if (mainFile) fileUrl = await fileToBase64(mainFile);
+                const local = getLocalData();
+                local.files.unshift({
+                    id: Date.now(),
+                    title,
+                    caption,
+                    file_url: fileUrl,
+                    thumb_url: thumbUrl,
+                    file_size: fileSize,
+                    downloads: 0
+                });
+                localStorage.setItem('wblzy_vault_data', JSON.stringify(local));
+            }
+
+            e.target.reset();
+            document.getElementById('coverPreviewBox').style.display = 'none';
+            showMsg('Published to Vault!');
+            loadAdminData();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+
+        btn.innerText = 'Publish to Vault';
+        btn.disabled = false;
+    }
+
+    async function deleteFile(id) {
+        if (!isVerifiedSession) return;
+        if (!confirm('Delete this release permanently?')) return;
+        if (isCloud) {
+            await db.from('files').delete().eq('id', id);
+        } else {
+            const local = getLocalData();
+            local.files = local.files.filter(f => f.id !== id);
+            localStorage.setItem('wblzy_vault_data', JSON.stringify(local));
+        }
+        showMsg('Release deleted.');
+        loadAdminData();
+    }
+
+    checkAuth();
+</script>
+</body>
+</html>

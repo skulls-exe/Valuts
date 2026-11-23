@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wblzy Vault</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <style>
+        :root {
+            --bg: #000000;
+            --glass-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.015) 100%);
+            --glass-border: rgba(255, 255, 255, 0.14);
+            --glass-highlight: inset 0 1px 1px rgba(255, 255, 255, 0.28), inset 0 -1px 1px rgba(255, 255, 255, 0.04);
+            --text: #ffffff;
+            --muted: #8e96a4;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Liquid Refractive Orbs on Pure #000000 OLED Canvas */
+        .orb-1, .orb-2 {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(95px);
+            z-index: -1;
+            pointer-events: none;
+            animation: floatOrb 14s ease-in-out infinite alternate;
+        }
+        .orb-1 {
+            width: 340px;
+            height: 340px;
+            top: -90px;
+            left: -70px;
+            background: rgba(255, 255, 255, 0.11);
+        }
+        .orb-2 {
+            width: 380px;
+            height: 380px;
+            bottom: -110px;
+            right: -90px;
+            background: rgba(140, 185, 255, 0.12);
+            animation-delay: -6s;
+        }
+        @keyframes floatOrb {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(35px, 30px) scale(1.1); }
+        }
+
+        .container { max-width: 1040px; margin: 0 auto; padding: 20px 16px 70px; }
+
+        /* Liquid Glass Header — Pure Typography, Zero Logos */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 22px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(26px) saturate(160%);
+            -webkit-backdrop-filter: blur(26px) saturate(160%);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-highlight), 0 18px 40px rgba(0, 0, 0, 0.85);
+            border-radius: 22px;
+            margin-bottom: 24px;
+        }
+        .brand {
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: -0.6px;
+            background: linear-gradient(180deg, #ffffff 0%, #9ca3af 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .tg-link {
+            text-decoration: none;
+            color: #ffffff;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 99px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+            transition: all 0.25s ease;
+        }
+        .tg-link:hover { background: rgba(255, 255, 255, 0.15); transform: translateY(-1px); }
+
+        /* Liquid Glass Announcement Pill */
+        .announcement {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: var(--glass-highlight), 0 12px 32px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(24px) saturate(150%);
+            -webkit-backdrop-filter: blur(24px) saturate(150%);
+            padding: 14px 18px;
+            border-radius: 18px;
+            margin-bottom: 22px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+        .badge-live {
+            background: #ffffff;
+            color: #000000;
+            font-weight: 800;
+            font-size: 0.68rem;
+            padding: 4px 10px;
+            border-radius: 99px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            flex-shrink: 0;
+        }
+
+        /* Liquid Search Input */
+        .search-box { margin-bottom: 28px; }
+        .search-box input {
+            width: 100%;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-highlight);
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 18px;
+            font-size: 0.94rem;
+            outline: none;
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            transition: border-color 0.25s, background 0.25s;
+        }
+        .search-box input::placeholder { color: #6b7280; }
+        .search-box input:focus {
+            border-color: rgba(255, 255, 255, 0.35);
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        /* Liquid Glass Cards */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(295px, 1fr));
+            gap: 22px;
+        }
+        .card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-highlight), 0 20px 45px rgba(0, 0, 0, 0.9);
+            border-radius: 26px;
+            overflow: hidden;
+            backdrop-filter: blur(28px) saturate(160%);
+            -webkit-backdrop-filter: blur(28px) saturate(160%);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.28);
+        }
+        .card-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.6));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4b5563;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .card-body { padding: 20px; display: flex; flex-direction: column; flex-grow: 1; }
+        .card-title { font-size: 1.08rem; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 8px; color: #fff; }
+        .card-caption { font-size: 0.87rem; color: var(--muted); line-height: 1.55; margin-bottom: 18px; flex-grow: 1; white-space: pre-line; }
+        .meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.76rem;
+            color: #9ca3af;
+            margin-bottom: 16px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .btn-download {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            background: linear-gradient(180deg, #ffffff 0%, #d1d5db 100%);
+            color: #000000;
+            font-weight: 800;
+            padding: 13px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            letter-spacing: -0.2px;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+            box-shadow: 0 6px 20px rgba(255, 255, 255, 0.14);
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .btn-download:hover { opacity: 0.92; transform: scale(0.99); }
+        .empty { text-align: center; color: var(--muted); padding: 60px 20px; grid-column: 1/-1; font-size: 0.92rem; }
+    </style>
+</head>
+<body>
+<div class="orb-1"></div>
+<div class="orb-2"></div>
+
+<div class="container">
+    <header>
+        <div class="brand">Wblzy Vault</div>
+        <a href="https://t.me/wblzy" target="_blank" class="tg-link">Telegram</a>
+    </header>
+
+    <div id="announcementBox" class="announcement" style="display:none;">
+        <span class="badge-live">Notice</span>
+        <div id="announcementText"></div>
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search files, tools, releases..." oninput="renderFiles()">
+    </div>
+
+    <div class="grid" id="filesGrid">
+        <div class="empty">Loading vault...</div>
+    </div>
+</div>
+
+<script>
+    const isCloud = SUPABASE_URL && SUPABASE_ANON_KEY;
+    const db = isCloud ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    let allFiles = [];
+
+    function getLocalData() {
+        let data = JSON.parse(localStorage.getItem('wblzy_vault_data') || 'null');
+        if (!data) {
+            data = {
+                announcement: "Welcome to Wblzy Vault. Open /admin to publish files, cover images & announcements.",
+                files: [
+                    {
+                        id: 1,
+                        title: "Wblzy Pro Utility v2.4",
+                        caption: "Complete standalone release with pure black liquid glass UI and instant setup.",
+                        file_url: "#",
+                        thumb_url: "",
+                        file_size: "14.2 MB",
+                        downloads: 128
+                    }
+                ]
+            };
+            localStorage.setItem('wblzy_vault_data', JSON.stringify(data));
+        }
+        return data;
+    }
+
+    async function init() {
+        if (isCloud) {
+            const { data: ann } = await db.from('announcements').select('*').eq('is_active', true).order('id', { ascending: false }).limit(1);
+            if (ann && ann.length > 0 && ann[0].message) {
+                document.getElementById('announcementText').innerText = ann[0].message;
+                document.getElementById('announcementBox').style.display = 'flex';
+            }
+            const { data: files } = await db.from('files').select('*').order('id', { ascending: false });
+            allFiles = files || [];
+        } else {
+            const local = getLocalData();
+            if (local.announcement) {
+                document.getElementById('announcementText').innerText = local.announcement;
+                document.getElementById('announcementBox').style.display = 'flex';
+            }
+            allFiles = local.files || [];
+        }
+        renderFiles();
+    }
+
+    function renderFiles() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        const grid = document.getElementById('filesGrid');
+        const filtered = allFiles.filter(f =>
+            f.title.toLowerCase().includes(q) || f.caption.toLowerCase().includes(q)
+        );
+
+        if (filtered.length === 0) {
+            grid.innerHTML = '<div class="empty">No matching files found.</div>';
+            return;
+        }
+
+        grid.innerHTML = filtered.map(item => `
+            <div class="card">
+                ${item.thumb_url
+                    ? `<img src="${item.thumb_url}" alt="Preview" class="card-img">`
+                    : `<div class="card-img">NO PREVIEW</div>`
+                }
+                <div class="card-body">
+                    <div class="card-title">${escapeHtml(item.title)}</div>
+                    <div class="card-caption">${escapeHtml(item.caption)}</div>
+                    <div class="meta">
+                        <span>Size: ${escapeHtml(item.file_size || 'N/A')}</span>
+                        <span>Downloads: <span id="dl-${item.id}">${item.downloads || 0}</span></span>
+                    </div>
+                    <button class="btn-download" onclick="handleDownload(${item.id}, '${item.file_url}', '${escapeHtml(item.title)}')">Download File</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function handleDownload(id, url, title) {
+        const file = allFiles.find(f => f.id === id);
+        if (file) {
+            file.downloads = (file.downloads || 0) + 1;
+            const counterEl = document.getElementById(`dl-${id}`);
+            if (counterEl) counterEl.innerText = file.downloads;
+        }
+
+        if (isCloud) {
+            await db.from('files').update({ downloads: file.downloads }).eq('id', id);
+            window.open(url, '_blank');
+        } else {
+            const local = getLocalData();
+            local.files = allFiles;
+            localStorage.setItem('wblzy_vault_data', JSON.stringify(local));
+            if (url && url !== '#') {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = title;
+                a.click();
+            } else {
+                alert('Preview Mode: Upload a real file or paste a download link in /admin to download!');
+            }
+        }
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    init();
+</script>
+</body>
+</html>
